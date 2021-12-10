@@ -1,12 +1,13 @@
 .section .data
-	titulo: 	.asciz 	"\n*** Trabalho 2: Multiplicador Matricial ***\n"
+	titulo: 	.asciz 	"\n*** Trabalho 2: Multiplicador Matricial (double float) ***\n"
 
     # menu
 	menu: 	    .asciz 	"\n=========== MENU ===========\n1 - Digitar Matrizes\n2 - Obter Matrizes de Arquivo\n3 - Calculo Produto Matricial\n4 - Gravar Matriz Resultante em Arquivo\n5 - Imprimir Matrizes\n6 - Sair\n"
     pedeMenu:   .asciz  "\nOpção => "
     opcao: 		.int 	0
 
-    formato: 	.asciz 	"%d"
+    int:        .asciz  "%d"
+    float: 	    .asciz 	"%lf"
     quebraLin:  .asciz  "\n"
 
     # matriz Amxn e matriz Bnxp
@@ -22,9 +23,9 @@
 	pB: 		.int 	0
     
     # matrizes
-    A: 		    .space 	4
-    B:          .space  4
-    C:          .space  4
+    A: 		    .int 	8
+    B:          .int    8
+    C:          .int    8
 
     # leitura das matrizes
     leitura:    .asciz  "\nLeitura do Vetor %c:\n"	
@@ -33,11 +34,12 @@
     colunas:    .int    0
     i:          .int    -1
     j:          .int    -1
-    num:        .int    0
+    num:        .double  0
+    limpaBuf:   .string "%*c"
     
     # impressao das matrizes
     imprime:    .asciz  "\nMatriz %c:\n"
-    elemento:   .asciz  "%d "
+    elemento:   .asciz  "%.2lf "
 
     # mensagens de erros
     erroOP:     .asciz  "\nREALIZE A INSERCAO NAS MATRIZES\n"
@@ -46,6 +48,7 @@
 .section .text
 .globl _start
 _start:
+    finit
 	call	_abertura
     jmp     _menu
 
@@ -57,7 +60,6 @@ _fim:
 _abertura:
     pushl   $titulo
     call    printf
-
     addl    $4, %esp
     ret
 
@@ -67,12 +69,12 @@ _menu:
     pushl   $pedeMenu
     call    printf
     pushl   $opcao
-    pushl   $formato
+    pushl   $int
     call    scanf
     addl    $16, %esp
 
     movl    opcao, %eax
-
+    
     # faz a chamada de cada operação do menu
 
     # sair
@@ -98,19 +100,19 @@ _menu:
     cmpl    $5, %eax
     je      _imprimeMatrizes
 
-    jmp    _menu
+    jmp     _menu
 
 _leituraTerminal:
     # pede numero de linhas e colunas de A
     pushl   $pedeMA
     call    printf
     pushl   $mA
-    pushl   $formato
+    pushl   $int
     call    scanf
     pushl   $pedeNA
     call    printf
     pushl   $nA
-    pushl   $formato
+    pushl   $int
     call    scanf
     addl    $24, %esp
 
@@ -118,12 +120,12 @@ _leituraTerminal:
     pushl   $pedeNB
     call    printf
     pushl   $nB
-    pushl   $formato
+    pushl   $int
     call    scanf
     pushl   $pedePB
     call    printf
     pushl   $pB
-    pushl   $formato
+    pushl   $int
     call    scanf
     addl    $24, %esp
 
@@ -137,7 +139,7 @@ _leituraTerminal:
     movl    nA, %eax
 	movl    mA, %ebx
 	mull    %ebx
-    movl    $4, %ebx
+    movl    $8, %ebx
     mull    %ebx
     pushl   %eax
 	call    malloc
@@ -145,7 +147,7 @@ _leituraTerminal:
     movl    nB, %eax
 	movl    pB, %ebx
 	mull    %ebx
-    movl    $4, %ebx
+    movl    $8, %ebx
     mull    %ebx
     pushl   %eax
 	call    malloc
@@ -156,7 +158,7 @@ _insercaoA:
     pushl   $'A'
     pushl   $leitura
     call    printf 
-    addl    $36, %esp
+    addl    $8, %esp
 
     movl    A, %edi
 
@@ -172,7 +174,7 @@ _insercaoB:
     pushl   $'B'
     pushl   $leitura
     call    printf 
-    addl    $36, %esp
+    addl    $8, %esp
 
     movl    B, %edi
 
@@ -195,7 +197,6 @@ _insercaoExterno:
 
 _insercaoInterno:
     pushl   %ecx
-    pushl   %edi
 
     # entrada do elemento novo
     pushl   j
@@ -203,15 +204,16 @@ _insercaoInterno:
 	pushl   $pedenum
 	call    printf
     pushl   $num
-	pushl   $formato
+	pushl   $float
 	call    scanf
-    addl    $20, %esp
+    pushl   $limpaBuf
+	call    scanf
 
     # insercao do num no vetor
-    popl    %edi
-    movl    num, %eax
-    movl    %eax, (%edi)
-    addl    $4, %edi
+    fldl    num
+    fstpl   (%edi)
+    addl    $8, %edi
+    addl    $24, %esp
 
     # incremento do j
     movl    j, %eax 
@@ -236,6 +238,7 @@ _imprimeMatrizes:
     pushl   $imprime
     call    printf
     addl    $8, %esp
+    
     movl    A, %edi
     movl    mA, %ecx
     movl    nA, %eax
@@ -261,23 +264,14 @@ _imprimeExterno:
     movl    colunas, %ecx
 
 _imprimeElementos:
+    fldl    (%edi)
+    addl    $8, %edi
     pushl   %ecx
-    
-    # eax = elemento do vetor e num = eax
-    movl    (%edi), %eax
-    movl    %eax, num
-
-    pushl   %edi
-
-    # imprime num
-    pushl   num
+    subl    $8, %esp
+    fstpl   (%esp)
     pushl   $elemento
     call    printf
-    addl    $8, %esp
-
-    # edi = endereço do próximo elemento a ser imprimido
-    popl    %edi
-    addl    $4, %edi
+    addl    $12, %esp    
 
     popl    %ecx
     loop    _imprimeElementos
