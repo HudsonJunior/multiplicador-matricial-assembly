@@ -23,6 +23,7 @@
 	pB: 		.int 	0
     tamA:       .int    0
     tamB:       .int    0
+    tamCBytes:       .int    0
     
     # matrizes
     A: 		    .int 	8
@@ -37,7 +38,7 @@
     j:          .int    -1
     k:          .int    -1
     num:        .double 0
-    soma:       .double 0
+    soma:       .double -1
     limpaBuf:   .string "%*c"
     
     # impressao das matrizes
@@ -55,9 +56,14 @@
     SYS_OPEN:               .int 5
     STD_OUT:                .int 1 
     STD_IN:                 .int 2 
+	SYS_CLOSE: 	            .int 6
     NULL:                   .byte 0 
     O_RDONLY:               .int 0x0000 
     S_IRUSR:                .int 0x0100
+    O_APPEND:               .int 0x0400
+	S_IWUSR: 	            .int 0x0080 # user has write permission
+	O_WRONLY:	            .int 0x0001 # somente escrita
+    O_CREAT: 	            .int 0x0040
     valorFloat:             .double 0.0
     msgAcabou:              .asciz "\nLeitura realizada com sucesso\n"
     fimMsgAcabou:
@@ -69,9 +75,12 @@
 
     .equ                    tamanhoPedeArqEntrada, fimPedeArqEntrada-pedeNomeArquivoEntrada
 
+    nomeArquivoOut:         .asciz  "out.txt"
+
     # mensagens de erros
     erroOP:     .asciz  "\nREALIZE A INSERCAO NAS MATRIZES\n"
     erroDim:    .asciz  "\nINCOMPATIBILIDADE DAS DIMENSOES\n"
+    erroCalc:    .asciz  "\nREALIZE A MULTIPLICAÇÃO ANTES DE SALVAR NO ARQUIVO\n"
 
 .section .text
 .globl _start
@@ -368,6 +377,8 @@ _multMatrizes:
 	mull    %ebx
     movl    $8, %ebx
     mull    %ebx
+    movl    %eax, tamCBytes
+
     pushl   %eax
 	call    malloc
     movl    %eax, C
@@ -488,7 +499,66 @@ _imprimeResultado:
     ret
 
 _gravaResultado:
+    cmpl    $0, tamCBytes
+    je      _erroNaoCalculado  
+    
+    cmpl    $0, nomeArquivoEntrada
+    je      _criaArquivoEntrada
+
+    call     _insereArquivoEntrada
+
     jmp     _menu
+
+_erroNaoCalculado:
+    pushl   $erroCalc
+    call    printf
+    addl    $4, %esp
+    jmp     _menu
+
+_criaArquivoEntrada:
+    movl 	SYS_OPEN, %eax 		# system call OPEN: retorna o descritor em %eax
+	movl 	$nomeArquivoOut, %ebx
+	movl 	O_WRONLY, %ecx
+	orl 	O_CREAT, %ecx
+	movl 	S_IRUSR, %edx
+	orl 	S_IWUSR, %edx
+	int 	$0x80
+    
+    movl 	%eax, descritor 			# guarda o descritor
+	movl 	SYS_WRITE, %eax
+    movl    descritor, %ebx
+    
+    
+    movl    C, %edi
+    movl    %edi, %ecx
+    movl    tamCBytes, %edx
+    int     $0x80
+
+	movl 	SYS_CLOSE, %eax
+	int 	$0x80
+    jmp     _menu
+
+_insereArquivoEntrada:
+    movl 	SYS_OPEN, %eax 		# system call OPEN: retorna o descritor em %eax
+	movl 	$nomeArquivoEntrada, %ebx
+	movl 	O_WRONLY, %ecx
+	orl 	O_APPEND, %ecx
+	movl 	S_IRUSR, %edx
+	orl 	S_IWUSR, %edx
+	int 	$0x80
+    
+    movl 	%eax, descritor 			# guarda o descritor
+	movl 	SYS_WRITE, %eax
+    movl    descritor, %ebx
+    
+    movl    C, %edi
+    movl    %edi, %ecx
+    movl    tamCBytes, %edx
+    int     $0x80
+
+	movl 	SYS_CLOSE, %eax
+	int 	$0x80
+    ret
 
 _erroOperacao:
     pushl   $erroOP
