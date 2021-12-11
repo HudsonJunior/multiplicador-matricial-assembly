@@ -30,11 +30,12 @@
     # leitura das matrizes
     leitura:    .asciz  "\nLeitura do Vetor %c:\n"	
     pedenum: 	.asciz 	"Elemento [%d][%d] => "
-    linhas:     .int    0  
     colunas:    .int    0
     i:          .int    -1
     j:          .int    -1
-    num:        .double  0
+    k:          .int    -1
+    num:        .double 0
+    soma:       .double 0
     limpaBuf:   .string "%*c"
     
     # impressao das matrizes
@@ -43,7 +44,7 @@
 
     # mensagens de erros
     erroOP:     .asciz  "\nREALIZE A INSERCAO NAS MATRIZES\n"
-    erroDim:     .asciz  "\nINCOMPATIBILIDADE DAS DIMENSOES\n"
+    erroDim:    .asciz  "\nINCOMPATIBILIDADE DAS DIMENSOES\n"
 
 .section .text
 .globl _start
@@ -77,7 +78,6 @@ _menu:
     
     # faz a chamada de cada operação do menu
 
-    # sair
     cmpl    $6, %eax
     je      _fim
 
@@ -103,6 +103,10 @@ _menu:
     jmp     _menu
 
 _leituraTerminal:
+    # verifica se a matriz ja foi alocada
+    cmpl    $0, colunas
+    jne     _limpaMatrizes
+
     # pede numero de linhas e colunas de A
     pushl   $pedeMA
     call    printf
@@ -232,6 +236,17 @@ _insercaoInterno:
     loop    _insercaoExterno
     ret
 
+_limpaMatrizes:
+    # desalocação dos vetores A e B
+    pushl   A
+    call    free
+
+    pushl   B
+    call    free
+
+    movl    $0, colunas
+    jmp     _leituraTerminal
+
 _imprimeMatrizes:
     # imprime matriz A
     pushl   $'A'
@@ -289,7 +304,130 @@ _leituraArq:
     jmp     _menu
 
 _multMatrizes:
+    # alocacao da matriz C
+    movl    mA, %eax
+	movl    pB, %ebx
+	mull    %ebx
+    movl    $8, %ebx
+    mull    %ebx
+    pushl   %eax
+	call    malloc
+    movl    %eax, C
+
+    movl    mA, %ecx
+    movl    $0, i
+
+    call    _mm1
+    call    _imprimeResultado
     jmp     _menu
+
+_mm1:
+    pushl   %ecx
+
+    movl    pB, %ecx
+    movl    $0, j
+
+    call    _mm2
+
+    # incremento do i
+    movl    i, %eax 
+    incl    %eax
+    movl    %eax, i
+    
+    popl    %ecx
+    loop    _mm1
+    ret
+
+_mm2:
+    pushl   %ecx
+
+    movl    nB, %ecx
+    movl    $0, k
+
+    # soma = 0
+    fldz    
+    fstpl   soma
+
+    call    _mm3
+
+    # calculo do offset de C
+    movl    i, %eax
+    movl    pB, %ebx
+    mull    %ebx
+    movl    j, %ebx
+    addl    %ebx, %eax
+    movl    $8, %ebx
+    mull    %ebx
+    movl    C, %edi
+    addl    %eax, %edi
+
+    # insercao em C
+    fldl    soma
+    fstpl   (%edi)
+    addl    $8, %edi
+
+    # incremento do j
+    movl    j, %eax 
+    incl    %eax
+    movl    %eax, j
+
+    popl    %ecx
+    loop    _mm2
+    ret
+
+_mm3:
+    pushl   %ecx
+
+    # calculo do offset de A
+    movl    nB, %eax
+    movl    i, %ebx
+    mull    %ebx
+    movl    k, %ebx
+    addl    %ebx, %eax
+    movl    $8, %ebx
+    mull    %ebx
+    movl    A, %edi
+    addl    %eax, %edi
+
+    # calculo do offset de B
+    movl    pB, %eax
+    movl    k, %ebx
+    mull    %ebx
+    movl    j, %ebx
+    addl    %ebx, %eax
+    movl    $8, %ebx
+    mull    %ebx
+    movl    B, %esi
+    addl    %eax, %esi
+
+    # multiplicacao de ponto flutuante
+    fldl    (%edi)  # carrega valor de A na pilha de PF
+    fmull   (%esi)  # multiplica  
+    faddl   soma    # soma + resultado da mult
+    fstpl   soma    # coloca do topo da pilha de PF para a variavel soma
+
+    # incremento de k
+    movl    k, %eax 
+    incl    %eax
+    movl    %eax, k
+
+    popl    %ecx
+    loop    _mm3
+    ret
+
+_imprimeResultado:
+    # imprime matriz C
+    pushl   $'C'
+    pushl   $imprime
+    call    printf
+    addl    $8, %esp
+    
+    movl    C, %edi
+    movl    mA, %ecx
+    movl    pB, %eax
+    movl    %eax, colunas
+    call    _imprimeExterno
+    ret
 
 _gravaResultado:
     jmp     _menu
