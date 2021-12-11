@@ -21,6 +21,8 @@
     nA:         .int    0
     nB:         .int    0
 	pB: 		.int 	0
+    tamA:       .int    0
+    tamB:       .int    0
     
     # matrizes
     A: 		    .int 	8
@@ -41,6 +43,31 @@
     # impressao das matrizes
     imprime:    .asciz  "\nMatriz %c:\n"
     elemento:   .asciz  "%.2lf "
+
+    # leitura do arquivo
+    nomeArquivoEntrada:     .int 0
+    pedeNomeArquivoEntrada: .ascii "\nEntre com o nome do arquivo de entrada => " 
+    fimPedeArqEntrada:
+
+    SYS_EXIT:               .int 1
+    SYS_READ:               .int 3
+    SYS_WRITE:              .int 4
+    SYS_OPEN:               .int 5
+    STD_OUT:                .int 1 
+    STD_IN:                 .int 2 
+    NULL:                   .byte 0 
+    O_RDONLY:               .int 0x0000 
+    S_IRUSR:                .int 0x0100
+    valorFloat:             .double 0.0
+    msgAcabou:              .asciz "\nLeitura realizada com sucesso\n"
+    fimMsgAcabou:
+    .equ                    tamMsgAcabou, fimMsgAcabou-msgAcabou
+
+    tamSrtArquivoEntrada:   .int 80
+    stringLida:             .space 80    # para ler 80 caracteres do arquivo de entrada 
+    descritor:              .int 0
+
+    .equ                    tamanhoPedeArqEntrada, fimPedeArqEntrada-pedeNomeArquivoEntrada
 
     # mensagens de erros
     erroOP:     .asciz  "\nREALIZE A INSERCAO NAS MATRIZES\n"
@@ -88,7 +115,10 @@ _menu:
     je      _leituraArq
 
     # verifica se ja fez a leitura 
-    cmpl    $-1, i
+    cmpl    $0, mA
+    je      _erroOperacao
+
+    cmpl    $0, nB
     je      _erroOperacao
 
     cmpl    $3, %eax
@@ -103,9 +133,9 @@ _menu:
     jmp     _menu
 
 _leituraTerminal:
-    # verifica se a matriz ja foi alocada
-    cmpl    $0, colunas
-    jne     _limpaMatrizes
+    # verifica se as matrizes ja foi alocada
+    cmpl    $0, mA
+    jne     _limpaMatrizesTerminal
 
     # pede numero de linhas e colunas de A
     pushl   $pedeMA
@@ -236,7 +266,7 @@ _insercaoInterno:
     loop    _insercaoExterno
     ret
 
-_limpaMatrizes:
+_limpaMatrizesArq:
     # desalocação dos vetores A e B
     pushl   A
     call    free
@@ -244,7 +274,30 @@ _limpaMatrizes:
     pushl   B
     call    free
 
-    movl    $0, colunas
+    movl    $0, mA
+    movl    $0, nA
+    movl    $0, nB
+    movl    $0, pB
+    movl    $0, tamA
+    movl    $0, tamB  
+    
+    jmp     _pedeArqEntrada
+
+_limpaMatrizesTerminal:
+    # desalocação dos vetores A e B
+    pushl   A
+    call    free
+
+    pushl   B
+    call    free
+
+    movl    $0, mA
+    movl    $0, nA
+    movl    $0, nB
+    movl    $0, pB
+    movl    $0, tamA
+    movl    $0, tamB  
+    
     jmp     _leituraTerminal
 
 _imprimeMatrizes:
@@ -301,6 +354,11 @@ _imprimeElementos:
     ret
 
 _leituraArq:
+    # verifica se as matrizes ja foi alocada
+    cmpl    $0, mA
+    jne     _limpaMatrizesArq
+
+    jmp     _pedeArqEntrada
     jmp     _menu
 
 _multMatrizes:
@@ -436,10 +494,183 @@ _erroOperacao:
     pushl   $erroOP
     call    printf
     addl    $4, %esp
-    call    _menu
+    jmp     _menu
 
 _erroDim:
     pushl   $erroDim
     call    printf
     addl    $4, %esp
-    call    _leituraTerminal
+    jmp     _menu
+
+_pedeArqEntrada:
+
+    movl    SYS_WRITE, %eax
+    movl    STD_OUT, %ebx
+    movl    $pedeNomeArquivoEntrada, %ecx
+    movl    $tamanhoPedeArqEntrada, %edx
+    int     $0x80
+
+_leNomeArqEntrada:
+    movl    SYS_READ, %eax
+    movl    STD_IN, %ebx
+    movl    $nomeArquivoEntrada, %ecx
+    movl    $50, %edx         # le 50 caracteres no maximo
+    int     $0x80
+
+_insereFinalString:
+    movl    $nomeArquivoEntrada, %edi
+    subl    $1, %eax        # para compensar o deslocamento
+    addl    %eax, %edi        # avan�a at� o enter
+    movl    NULL, %eax
+    movl    %eax, (%edi)        # coloca caracter final de string no lugar
+
+_abreArqLeitura:
+    movl    SYS_OPEN, %eax         # system call OPEN
+    movl    $nomeArquivoEntrada, %ebx
+    movl    O_RDONLY, %ecx
+    movl    S_IRUSR, %edx
+    int     $0x80
+    movl    %eax, descritor     # guarda o descritor retornado em %eax
+
+_leTamLinhaMatrizA:
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $1, %edx
+    int     $0x80 
+
+    pushl   $stringLida
+    call    atoi
+    movl    %eax, mA    
+
+_leTamColunaMatrizA:
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $1, %edx
+    int     $0x80  
+
+    pushl   $stringLida
+    call    atoi
+    movl    %eax, nA    
+
+_calculaDimensaoMatrizA:
+    movl    nA, %eax
+    movl    mA, %ebx
+    mull    %ebx
+    movl    %eax, tamA
+    movl    $8, %ebx
+    mull    %ebx
+    pushl   %eax
+    call    malloc
+    movl    %eax, A
+
+    movl    tamA, %ecx
+    movl    A, %edi
+
+_leValoresMatrizA:
+    movl    %ecx, tamA
+    
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $3, %edx
+    int     $0x80
+
+    finit
+    subl    $8, %esp
+    pushl   $stringLida
+    call    atof
+    fstl    valorFloat
+    fstpl   (%esp)
+
+    fldl    valorFloat
+    fstpl   (%edi)
+    addl    $8, %edi
+    addl    $24, %esp
+
+    movl    tamA, %eax
+    movl    tamA, %ecx
+    decl    %eax
+    movl    %eax, tamA
+    
+    loop    _leValoresMatrizA
+
+_leTamLinhaMatrizB:
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $1, %edx
+    int     $0x80 
+
+    pushl   $stringLida
+    call    atoi
+    movl    %eax, nB
+
+    movl    nA, %eax
+    movl    nB, %ebx
+    cmpl    %eax, %ebx
+    jne     _erroDim
+
+_leTamColunaMatrizB:
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $1, %edx
+    int     $0x80  
+
+    pushl   $stringLida
+    call    atoi
+    movl    %eax, pB    
+
+_calculaDimensaoMatrizB:
+    movl    nB, %eax
+    movl    pB, %ebx
+    mull    %ebx
+    movl    %eax, tamB
+    movl    $8, %ebx
+    mull    %ebx
+    pushl   %eax
+    call    malloc
+    movl    %eax, B
+
+    movl    tamB, %ecx
+    movl    B, %esi
+
+_leValoresMatrizB:
+    movl    %ecx, tamB
+    
+    movl    SYS_READ, %eax
+    movl    descritor, %ebx
+    movl    $stringLida, %ecx
+    movl    $3, %edx
+    int     $0x80
+
+    finit
+    subl    $8, %esp
+    pushl   $stringLida
+    call    atof
+    fstl    valorFloat
+    fstpl   (%esp)
+
+    fldl    valorFloat
+    fstpl   (%esi)
+    addl    $8, %esi
+    addl    $24, %esp
+
+    movl    tamB, %eax
+    movl    tamB, %ecx
+    decl    %eax
+    movl    %eax, tamB
+    
+    loop    _leValoresMatrizB
+    jmp     _acabouArquivo
+
+_acabouArquivo:
+    movl    SYS_WRITE, %eax
+    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    $msgAcabou, %ecx
+    movl    $tamMsgAcabou, %edx
+    int     $0x80
+    jmp     _menu
+# TODO: adicionar free da matriz ao ler do arquivo
