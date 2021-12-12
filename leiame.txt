@@ -1,0 +1,7 @@
+Há dois arquivos para teste neste diretório: "certo.txt" e "erroDim.txt"
+
+O arquivo "certo.txt" contém um exemplo de duas matrizes
+que o cálculo da multiplicação funciona normalmente.
+
+O arquivo "erroDim.txt" contém duas matrizes que possuem
+incompatibilidade no tamanho
