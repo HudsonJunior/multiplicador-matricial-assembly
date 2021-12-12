@@ -1,7 +1,7 @@
 .section .data
 	titulo: 	.asciz 	"\n*** Trabalho 2: Multiplicador Matricial (double float) ***\n"
 
-    # menu
+    # Menu
 	menu: 	    .asciz 	"\n=========== MENU ===========\n1 - Digitar Matrizes\n2 - Obter Matrizes de Arquivo\n3 - Calculo Produto Matricial\n4 - Gravar Matriz Resultante em Arquivo\n5 - Imprimir Matrizes\n6 - Sair\n"
     pedeMenu:   .asciz  "\nOpção => "
     opcao: 		.int 	0
@@ -10,13 +10,13 @@
     float: 	    .asciz 	"%lf"
     quebraLin:  .asciz  "\n"
 
-    # matriz Amxn e matriz Bnxp
+    # Matriz Amxn e matriz Bnxp
     pedeMA: 	.asciz 	"\nNúmero de linhas de A => "
     pedeNA:     .asciz  "\nNúmero de colunas de A => "
     pedeNB: 	.asciz 	"\nNúmero de linhas de B => "
     pedePB: 	.asciz 	"\nNúmero de colunas de B => "
 
-    # dimensoes das matrizes
+    # Dimensoes das matrizes
     mA: 		.int 	0
     nA:         .int    0
     nB:         .int    0
@@ -25,12 +25,12 @@
     tamB:       .int    0
     tamCBytes:       .int    0
     
-    # matrizes
+    # Matrizes
     A: 		    .int 	8
     B:          .int    8
     C:          .int    8
 
-    # leitura das matrizes
+    # Leitura das matrizes
     leitura:    .asciz  "\nLeitura do Vetor %c:\n"	
     pedenum: 	.asciz 	"Elemento [%d][%d] => "
     colunas:    .int    0
@@ -41,11 +41,11 @@
     soma:       .double -1
     limpaBuf:   .string "%*c"
     
-    # impressao das matrizes
+    # Impressao das matrizes
     imprime:    .asciz  "\nMatriz %c:\n"
     elemento:   .asciz  "%.2lf "
 
-    # leitura do arquivo
+    # Leitura do arquivo
     nomeArquivoEntrada:     .int 0
     pedeNomeArquivoEntrada: .ascii "\nEntre com o nome do arquivo de entrada => " 
     fimPedeArqEntrada:
@@ -66,7 +66,7 @@
     O_CREAT: 	            .int 0x0040
     O_RDONLY:               .int 0x0000
 
-    # Constantes de configuraçãoo do parametro mode da chamada open()
+    # Constantes de configuração do parametro mode da chamada open()
     S_IRUSR:                .int 0x0100
 	S_IWUSR: 	            .int 0x0080 
 
@@ -79,14 +79,14 @@
     .equ                    tamMsgGravou, fimMsgGravou-msgGravou
 
     tamSrtArquivoEntrada:   .int 80
-    stringLida:             .space 80    # para ler 80 caracteres do arquivo de entrada 
+    stringLida:             .space 80    # Para ler até 80 caracteres do arquivo de entrada 
     descritor:              .int 0
 
     .equ                    tamanhoPedeArqEntrada, fimPedeArqEntrada-pedeNomeArquivoEntrada
 
     nomeArquivoOut:         .asciz  "out.txt"
 
-    # mensagens de erros
+    # Mensagens de erros
     erroOP:     .asciz  "\nREALIZE A INSERCAO NAS MATRIZES\n"
     erroDim:    .asciz  "\nINCOMPATIBILIDADE DAS DIMENSOES\n"
     erroCalc:    .asciz  "\nREALIZE A MULTIPLICAÇÃO ANTES DE SALVAR NO ARQUIVO\n"
@@ -99,7 +99,7 @@ _start:
     jmp     _menu
 
 _fim:
-	# finaliza a execução do programa
+	# Finaliza a execução do programa
     pushl   $0
 	call    exit
 
@@ -121,7 +121,7 @@ _menu:
 
     movl    opcao, %eax
     
-    # faz a chamada de cada operação do menu
+    # Faz a chamada de cada operação do menu
 
     cmpl    $6, %eax
     je      _fim
@@ -132,7 +132,7 @@ _menu:
     cmpl    $2, %eax
     je      _leituraArq
 
-    # verifica se ja fez a leitura 
+    # Verifica se ja fez a leitura 
     cmpl    $0, mA
     je      _erroOperacao
 
@@ -372,7 +372,7 @@ _imprimeElementos:
     ret
 
 _leituraArq:
-    # verifica se as matrizes ja foi alocada
+    # Verifica se as matrizes ja foram alocada
     cmpl    $0, mA
     jne     _limpaMatrizesArq
 
@@ -508,9 +508,11 @@ _imprimeResultado:
     ret
 
 _gravaResultado:
+    # Verifica se a matriz C já foi calculada
     cmpl    $0, tamCBytes
     je      _erroNaoCalculado  
     
+    # Verifica se foi informado um nome do arquivo de entrada
     cmpl    $0, nomeArquivoEntrada
     je      _criaArquivoEntrada
 
@@ -525,7 +527,8 @@ _erroNaoCalculado:
     jmp     _menu
 
 _criaArquivoEntrada:
-    movl 	SYS_OPEN, %eax 		# system call OPEN: retorna o descritor em %eax
+    # Cria um arquivo caso não tenha sido informado nennhum
+    movl 	SYS_OPEN, %eax 		
 	movl 	$nomeArquivoOut, %ebx
 	movl 	O_WRONLY, %ecx
 	orl 	O_CREAT, %ecx
@@ -533,11 +536,11 @@ _criaArquivoEntrada:
 	orl 	S_IWUSR, %edx
 	int 	$0x80
     
-    movl 	%eax, descritor 			# guarda o descritor
+    movl 	%eax, descritor 			
 	movl 	SYS_WRITE, %eax
     movl    descritor, %ebx
     
-    
+    # Escreve a matriz C nesse arquivo
     movl    C, %edi
     movl    %edi, %ecx
     movl    tamCBytes, %edx
@@ -546,8 +549,9 @@ _criaArquivoEntrada:
 	movl 	SYS_CLOSE, %eax
 	int 	$0x80
 
+    # Informa que a gravação foi feita com sucesso
     movl    SYS_WRITE, %eax
-    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    STD_OUT, %ebx     
     movl    $msgGravou, %ecx
     movl    $tamMsgGravou, %edx
     int     $0x80
@@ -555,7 +559,8 @@ _criaArquivoEntrada:
     jmp     _menu
 
 _insereArquivoEntrada:
-    movl 	SYS_OPEN, %eax 		# system call OPEN: retorna o descritor em %eax
+    # Abre o arquivo de entrada em modo APPEND
+    movl 	SYS_OPEN, %eax 		
 	movl 	$nomeArquivoEntrada, %ebx
 	movl 	O_WRONLY, %ecx
 	orl 	O_APPEND, %ecx
@@ -563,10 +568,11 @@ _insereArquivoEntrada:
 	orl 	S_IWUSR, %edx
 	int 	$0x80
     
-    movl 	%eax, descritor 			# guarda o descritor
+    movl 	%eax, descritor 			
 	movl 	SYS_WRITE, %eax
     movl    descritor, %ebx
     
+    # Insere a matriz C no final desse arquivo
     movl    C, %edi
     movl    %edi, %ecx
     movl    tamCBytes, %edx
@@ -575,8 +581,9 @@ _insereArquivoEntrada:
 	movl 	SYS_CLOSE, %eax
 	int 	$0x80
 
+    # Informa que a gravação foi feita com sucesso
     movl    SYS_WRITE, %eax
-    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    STD_OUT, %ebx         
     movl    $msgGravou, %ecx
     movl    $tamMsgGravou, %edx
     int     $0x80
@@ -683,6 +690,7 @@ _leValoresMatrizA:
     movl    $3, %edx
     int     $0x80
 
+    # Converte valor lido para float
     finit
     subl    $8, %esp
     pushl   $stringLida
@@ -690,6 +698,7 @@ _leValoresMatrizA:
     fstl    valorFloat
     fstpl   (%esp)
 
+    # Inserção na matriz
     fldl    valorFloat
     fstpl   (%edi)
     addl    $8, %edi
@@ -703,12 +712,14 @@ _leValoresMatrizA:
     loop    _leValoresMatrizA
 
 _leTamLinhaMatrizB:
+    # Faz a leitura do tamanho de linhas da matriz B
     movl    SYS_READ, %eax
     movl    descritor, %ebx
     movl    $stringLida, %ecx
     movl    $1, %edx
     int     $0x80 
 
+    # Converte valor para inteiro
     pushl   $stringLida
     call    atoi
     movl    %eax, nB
@@ -716,20 +727,26 @@ _leTamLinhaMatrizB:
     movl    nA, %eax
     movl    nB, %ebx
     cmpl    %eax, %ebx
+
+    # Faz validação das dimensões se são compativeis
     jne     _erroDim
 
 _leTamColunaMatrizB:
+    # Faz a leitura do tamanho de colunas da matriz B
+
     movl    SYS_READ, %eax
     movl    descritor, %ebx
     movl    $stringLida, %ecx
     movl    $1, %edx
     int     $0x80  
 
+    # Converte valor para inteiro
     pushl   $stringLida
     call    atoi
     movl    %eax, pB    
 
 _calculaDimensaoMatrizB:
+    # Realiza o calculo da dimensão da matriz B
     movl    nB, %eax
     movl    pB, %ebx
     mull    %ebx
@@ -744,14 +761,17 @@ _calculaDimensaoMatrizB:
     movl    B, %esi
 
 _leValoresMatrizB:
+    # Loop de inserção de valores na matriz A
     movl    %ecx, tamB
     
+    # Recupera o valor dos valores (3 caracteres x.y)
     movl    SYS_READ, %eax
     movl    descritor, %ebx
     movl    $stringLida, %ecx
     movl    $3, %edx
     int     $0x80
 
+    # Converte valor lido para float
     finit
     subl    $8, %esp
     pushl   $stringLida
@@ -759,6 +779,7 @@ _leValoresMatrizB:
     fstl    valorFloat
     fstpl   (%esp)
 
+    # Inserção na matriz
     fldl    valorFloat
     fstpl   (%esi)
     addl    $8, %esi
@@ -773,10 +794,10 @@ _leValoresMatrizB:
     jmp     _acabouArquivo
 
 _acabouArquivo:
+    # Escreve uma mensagem indicando que arquivo foi lido com sucesso
     movl    SYS_WRITE, %eax
-    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    STD_OUT, %ebx         
     movl    $msgAcabou, %ecx
     movl    $tamMsgAcabou, %edx
     int     $0x80
     jmp     _menu
-# TODO: adicionar free da matriz ao ler do arquivo
