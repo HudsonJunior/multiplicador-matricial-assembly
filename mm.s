@@ -50,6 +50,7 @@
     pedeNomeArquivoEntrada: .ascii "\nEntre com o nome do arquivo de entrada => " 
     fimPedeArqEntrada:
 
+    # Serviços disponibilizados pelo sistema
     SYS_EXIT:               .int 1
     SYS_READ:               .int 3
     SYS_WRITE:              .int 4
@@ -58,16 +59,24 @@
     STD_IN:                 .int 2 
 	SYS_CLOSE: 	            .int 6
     NULL:                   .byte 0 
-    O_RDONLY:               .int 0x0000 
-    S_IRUSR:                .int 0x0100
+
+    # Constantes de configurcão do parametro flag da chamada open().
     O_APPEND:               .int 0x0400
-	S_IWUSR: 	            .int 0x0080 # user has write permission
-	O_WRONLY:	            .int 0x0001 # somente escrita
+	O_WRONLY:	            .int 0x0001 
     O_CREAT: 	            .int 0x0040
+    O_RDONLY:               .int 0x0000
+
+    # Constantes de configuraçãoo do parametro mode da chamada open()
+    S_IRUSR:                .int 0x0100
+	S_IWUSR: 	            .int 0x0080 
+
     valorFloat:             .double 0.0
     msgAcabou:              .asciz "\nLeitura realizada com sucesso\n"
     fimMsgAcabou:
+    msgGravou:              .asciz "\nGravou no arquivo com sucesso\n"
+    fimMsgGravou:
     .equ                    tamMsgAcabou, fimMsgAcabou-msgAcabou
+    .equ                    tamMsgGravou, fimMsgGravou-msgGravou
 
     tamSrtArquivoEntrada:   .int 80
     stringLida:             .space 80    # para ler 80 caracteres do arquivo de entrada 
@@ -536,6 +545,13 @@ _criaArquivoEntrada:
 
 	movl 	SYS_CLOSE, %eax
 	int 	$0x80
+
+    movl    SYS_WRITE, %eax
+    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    $msgGravou, %ecx
+    movl    $tamMsgGravou, %edx
+    int     $0x80
+
     jmp     _menu
 
 _insereArquivoEntrada:
@@ -558,6 +574,13 @@ _insereArquivoEntrada:
 
 	movl 	SYS_CLOSE, %eax
 	int 	$0x80
+
+    movl    SYS_WRITE, %eax
+    movl    STD_OUT, %ebx         # recupera o descritor
+    movl    $msgGravou, %ecx
+    movl    $tamMsgGravou, %edx
+    int     $0x80
+
     ret
 
 _erroOperacao:
@@ -573,7 +596,7 @@ _erroDim:
     jmp     _menu
 
 _pedeArqEntrada:
-
+    # Pede o nome do arquivo a ser lido
     movl    SYS_WRITE, %eax
     movl    STD_OUT, %ebx
     movl    $pedeNomeArquivoEntrada, %ecx
@@ -581,50 +604,61 @@ _pedeArqEntrada:
     int     $0x80
 
 _leNomeArqEntrada:
+    # Le o nome do arquivo informado
     movl    SYS_READ, %eax
     movl    STD_IN, %ebx
     movl    $nomeArquivoEntrada, %ecx
-    movl    $50, %edx         # le 50 caracteres no maximo
+    movl    $50, %edx
     int     $0x80
 
 _insereFinalString:
+    # Colocar caracter final de string no final da string lida
     movl    $nomeArquivoEntrada, %edi
-    subl    $1, %eax        # para compensar o deslocamento
-    addl    %eax, %edi        # avan�a at� o enter
+    subl    $1, %eax        # Para compensar o deslocamento
+    addl    %eax, %edi        # Avança até o enter
     movl    NULL, %eax
-    movl    %eax, (%edi)        # coloca caracter final de string no lugar
+    movl    %eax, (%edi)        # Coloca caracter final de string no lugar
 
 _abreArqLeitura:
-    movl    SYS_OPEN, %eax         # system call OPEN
+    # Abre o arquivo
+    movl    SYS_OPEN, %eax
     movl    $nomeArquivoEntrada, %ebx
+    # Somente leitura
     movl    O_RDONLY, %ecx
     movl    S_IRUSR, %edx
     int     $0x80
-    movl    %eax, descritor     # guarda o descritor retornado em %eax
+    movl    %eax, descritor     # Guarda o descritor retornado em %eax
 
 _leTamLinhaMatrizA:
+    # Faz a leitura do tamanho de linhas da matriz A
     movl    SYS_READ, %eax
     movl    descritor, %ebx
+    # Salvar os caracteres lidos na variavel stringLida
     movl    $stringLida, %ecx
     movl    $1, %edx
     int     $0x80 
 
+    # Converte o valor lido para inteiro
     pushl   $stringLida
     call    atoi
     movl    %eax, mA    
 
 _leTamColunaMatrizA:
+    # Faz a leitura do tamanho de colunas da matriz A
     movl    SYS_READ, %eax
     movl    descritor, %ebx
+    # Salvar os caracteres lidos na variavel stringLida
     movl    $stringLida, %ecx
     movl    $1, %edx
     int     $0x80  
 
+    # Converte o valor lido para inteiro
     pushl   $stringLida
     call    atoi
     movl    %eax, nA    
 
 _calculaDimensaoMatrizA:
+    # Realiza o calculo da dimensão da matriz A
     movl    nA, %eax
     movl    mA, %ebx
     mull    %ebx
@@ -638,9 +672,11 @@ _calculaDimensaoMatrizA:
     movl    tamA, %ecx
     movl    A, %edi
 
-_leValoresMatrizA:
+_leValoresMatrizA: 
+    # Loop de inserção de valores na matriz A
     movl    %ecx, tamA
     
+    # Recupera o valor dos valores (3 caracteres x.y)
     movl    SYS_READ, %eax
     movl    descritor, %ebx
     movl    $stringLida, %ecx
