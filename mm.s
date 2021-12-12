@@ -151,7 +151,7 @@ _menu:
     jmp     _menu
 
 _leituraTerminal:
-    # verifica se as matrizes ja foi alocada
+    # verifica se as matrizes ja foram alocadas
     cmpl    $0, mA
     jne     _limpaMatrizesTerminal
 
@@ -261,7 +261,7 @@ _insercaoInterno:
     pushl   $limpaBuf
 	call    scanf
 
-    # insercao do num no vetor
+    # insercao do num na matriz
     fldl    num
     fstpl   (%edi)
     addl    $8, %edi
@@ -274,6 +274,7 @@ _insercaoInterno:
 
     popl    %ecx
     loop    _insercaoInterno
+    # fim do loop interno
 
     # incremento do i
     movl    i, %eax 
@@ -292,6 +293,7 @@ _limpaMatrizesArq:
     pushl   B
     call    free
 
+    # zera as variaveis de dimensoes das matrizes
     movl    $0, mA
     movl    $0, nA
     movl    $0, nB
@@ -309,6 +311,7 @@ _limpaMatrizesTerminal:
     pushl   B
     call    free
 
+    # zera as variaveis de dimensoes das matrizes
     movl    $0, mA
     movl    $0, nA
     movl    $0, nB
@@ -350,6 +353,7 @@ _imprimeExterno:
     movl    colunas, %ecx
 
 _imprimeElementos:
+    # imprime um elemento double
     fldl    (%edi)
     addl    $8, %edi
     pushl   %ecx
@@ -361,6 +365,7 @@ _imprimeElementos:
 
     popl    %ecx
     loop    _imprimeElementos
+    # fim do loop interno
 
     # imprime quebra de linha
     pushl   $quebraLin
@@ -372,7 +377,7 @@ _imprimeElementos:
     ret
 
 _leituraArq:
-    # Verifica se as matrizes ja foram alocada
+    # Verifica se as matrizes ja foram alocadas
     cmpl    $0, mA
     jne     _limpaMatrizesArq
 
@@ -387,7 +392,6 @@ _multMatrizes:
     movl    $8, %ebx
     mull    %ebx
     movl    %eax, tamCBytes
-
     pushl   %eax
 	call    malloc
     movl    %eax, C
@@ -395,7 +399,10 @@ _multMatrizes:
     movl    mA, %ecx
     movl    $0, i
 
+    # cálculo do produto matricial
     call    _mm1
+
+    # imprime o resultado
     call    _imprimeResultado
     jmp     _menu
 
@@ -456,7 +463,7 @@ _mm2:
 _mm3:
     pushl   %ecx
 
-    # calculo do offset de A
+    # calculo do offset de A, edi -> A[i * linha_B + k]
     movl    nB, %eax
     movl    i, %ebx
     mull    %ebx
@@ -467,7 +474,7 @@ _mm3:
     movl    A, %edi
     addl    %eax, %edi
 
-    # calculo do offset de B
+    # calculo do offset de B, esi -> B[k * coluna_B + j]
     movl    pB, %eax
     movl    k, %ebx
     mull    %ebx
@@ -478,7 +485,7 @@ _mm3:
     movl    B, %esi
     addl    %eax, %esi
 
-    # multiplicacao de ponto flutuante
+    # multiplicacao de ponto flutuante: soma += (%edi) * (%esi)
     fldl    (%edi)  # carrega valor de A na pilha de PF
     fmull   (%esi)  # multiplica  
     faddl   soma    # soma + resultado da mult
@@ -499,7 +506,6 @@ _imprimeResultado:
     pushl   $imprime
     call    printf
     addl    $8, %esp
-    
     movl    C, %edi
     movl    mA, %ecx
     movl    pB, %eax
